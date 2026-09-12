@@ -1,0 +1,33 @@
+# Contract: Theme Tokens
+openapi: 3.0.0
+info:
+  title: DeckBox Theme Tokens
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    ThemeTokens:
+      type: object
+      properties:
+        colors:
+          type: object
+          properties:
+            ink: { type: string, example: "#0f172a" }
+            slate: { type: string, example: "#1e293b" }
+            gold: { type: string, example: "#D4A017" }
+            goldMuted: { type: string, example: "#9A7B2E" }
+            sand: { type: string, example: "#F5E6C8" }
+            warning: { type: string, example: "#b45309" }
+            success: { type: string, example: "#16a34a" }
+        radius: { type: object, properties: { sm: {type: integer, example: 8}, md: {type: integer, example: 12}, puzzle: {type: integer, example: 16} } }
+        spacing: { type: object }
+        typography: { type: object }
+        shadows: { type: object }
+        watermark:
+          type: object
+          properties:
+            asset: { type: string, example: "hieroglyph-watermark.svg" }
+            opacity: { type: number, example: 0.05 }
+            blend: { type: string, example: "overlay" }
+            placement: { type: string, example: "background" }
+            contrastRequirement: { type: string, example: "gold on ink >=4.5:1 AA" }

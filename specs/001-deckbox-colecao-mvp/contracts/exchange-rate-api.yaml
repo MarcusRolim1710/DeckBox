@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: Exchange Rate API (USD→BRL) — DeckBox
+  version: 1.0.0
+  description: >
+    Contrato para conversão USD→BRL dual (FR-022 opção C). Consumido por
+    `services/exchangeApi.ts` para derivar `currentPriceBRL = round(currentPriceUSD * rate, 2)`.
+    Primária: AwesomeAPI; fallback: exchangerate.host.
+servers:
+  - url: https://economia.awesomeapi.com.br
+  - url: https://api.exchangerate.host
+paths:
+  /json/last/USD-BRL:
+    get:
+      summary: AwesomeAPI — última cotação USD-BRL
+      responses:
+        '200':
+          description: Cotação atual
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [USDBRL]
+                properties:
+                  USDBRL:
+                    type: object
+                    required: [bid, create_date]
+                    properties:
+                      bid: { type: string, example: "5.1234", description: "Taxa de compra" }
+                      ask: { type: string, example: "5.1240" }
+                      create_date: { type: string, example: "2026-09-12 10:30:00" }
+              examples:
+                success:
+                  value: { USDBRL: { bid: "5.1234", ask: "5.1240", create_date: "2026-09-12 10:30:00" } }
+  /convert:
+    get:
+      summary: exchangerate.host — fallback de conversão
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, example: "USD" } }
+        - { name: to, in: query, required: true, schema: { type: string, example: "BRL" } }
+      responses:
+        '200':
+          description: Conversão
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: number, example: 5.12 }
+                  info: { type: object, properties: { rate: { type: number } } }
+                  date: { type: string, example: "2026-09-12" }
+x-deckbox-contract-tests:
+  - name: awesomeapi_success
+    request: { url: "/json/last/USD-BRL" }
+    expect: { status: 200, has: ["USDBRL.bid"], rate_parsable: true }
+  - name: exchangerate_fallback
+    request: { url: "/convert?from=USD&to=BRL" }
+    expect: { status: 200, has: ["result"], rate_parsable: true }
+  - name: offline_fallback
+    request: { offline: true }
+    expect: { uses_cached_rate: true, shows_stale_warning: true, keeps_USD: true }
+x-deckbox-mapping:
+  rate: "parseFloat(USDBRL.bid) || result || info.rate"
+  date: "create_date (trunc to YYYY-MM-DD) || date || today"
+  storage: "INSERT OR REPLACE INTO exchange_rates(date, rate, source, fetchedAt) VALUES (today, rate, source, now)"
+  derivation: "currentPriceBRL = roundHalfEven(currentPriceUSD * rate, 2)"

@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: YGOPRODeck API (DeckBox subset)
+  version: 7.0.0
+  description: >
+    Contrato externo consumido por DeckBox em `services/cardApi.ts` para hidratar
+    `name`/`imageUrl`/`price` a partir do código `SET-NUMBER` (ex.: LOB-001).
+    Base URL: https://db.ygoprodeck.com/api/v7/cardinfo.php
+    Este arquivo documenta apenas o subset usado no MVP e os casos de teste de contrato.
+servers:
+  - url: https://db.ygoprodeck.com/api/v7
+paths:
+  /cardinfo.php:
+    get:
+      summary: Busca carta por código/set
+      parameters:
+        - name: num
+          in: query
+          required: false
+          schema: { type: string, example: "LOB-001" }
+          description: Código canônico após normalização (trim + upper-case)
+        - name: name
+          in: query
+          required: false
+          schema: { type: string }
+          description: Fallback por nome quando num não retorna (não usado no MVP principal)
+      responses:
+        '200':
+          description: Carta encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, card_images, card_prices]
+                      properties:
+                        id: { type: integer, example: 46986414 }
+                        name: { type: string, example: "Blue-Eyes White Dragon" }
+                        card_images:
+                          type: array
+                          items:
+                            type: object
+                            required: [image_url, image_url_small]
+                            properties:
+                              image_url: { type: string, format: uri }
+                              image_url_small: { type: string, format: uri }
+                        card_prices:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              cardmarket_price: { type: string, example: "12.34" }
+                              tcgplayer_price: { type: string, example: "10.50" }
+                              ebay_price: { type: string, example: "11.00" }
+                              amazon_price: { type: string, example: "13.00" }
+                        card_sets:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              set_name: { type: string }
+                              set_code: { type: string, example: "LOB-001" }
+                              set_price: { type: string }
+              examples:
+                success:
+                  value:
+                    data:
+                      - id: 46986414
+                        name: "Blue-Eyes White Dragon"
+                        card_images: [{ image_url: "https://images.ygoprodeck.com/images/cards/46986414.jpg", image_url_small: "https://images.ygoprodeck.com/images/cards_small/46986414.jpg" }]
+                        card_prices: [{ cardmarket_price: "12.34", tcgplayer_price: "10.50", ebay_price: "11.00", amazon_price: "13.00" }]
+                        card_sets: [{ set_name: "Legend of Blue Eyes White Dragon", set_code: "LOB-001", set_price: "12.34" }]
+        '400':
+          description: Código não encontrado ou parâmetro inválido — DeckBox mapeia para erro "Código não encontrado"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "No card matching your query was found in the database." }
+x-deckbox-contract-tests:
+  - name: success_cardmarket_price
+    request: { num: "LOB-001" }
+    expect: { status: 200, has: ["data[0].name", "data[0].card_images[0].image_url", "data[0].card_prices[0].cardmarket_price"], price_parsable: true }
+  - name: not_found
+    request: { num: "XXX-999" }
+    expect: { status: 400, error_contains: "No card" }
+  - name: missing_price
+    request: { num: "CODE_WITHOUT_PRICE" }
+    expect: { status: 200, card_prices_cardmarket_empty_or_zero: true, mapped_to_null: true }
+  - name: malformed_response
+    request: { num: "MALFORMED" }
+    expect: { handles_gracefully: true, shows_retry: true }
+x-deckbox-mapping:
+  CollectionItem.name: "data[0].name"
+  CollectionItem.imageUrl: "data[0].card_images[0].image_url"
+  CollectionItem.currentPriceUSD: "parseFloat(data[0].card_prices[0].cardmarket_price) || parseFloat(tcgplayer_price) || null"
+  validation: "Se card_sets presente, verificar que algum set_code == code normalizado; se divergir, logar mas aceitar primeira entrada (research decision)"

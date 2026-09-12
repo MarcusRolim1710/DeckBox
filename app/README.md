@@ -1,26 +1,21 @@
-# DeckBox
+# 🃏 DeckBox — App
 
-Álbum digital para colecionadores de Yu-Gi-Oh — MVP mobile nativo (Expo).
+> Álbum digital Yu-Gi-Oh! — veja o [`../README.md`](../README.md) ilustrado na raiz do repositório para documentação completa.
 
-## Stack
-- React Native + Expo SDK 52, TypeScript, SQLite (`expo-sqlite`), FileSystem (`expo-file-system`), FlashList, Zustand, React Navigation
+## Atalho
 
-## Setup
 ```bash
 cd app
-npm install
-npx expo start
+npm install --legacy-peer-deps
+npx expo start --clear   # escaneie com Expo Go SDK 57
 ```
 
-## Testes
-```bash
-npm test
-npm run test:contract
-npm run test:integration
-```
+## Stack
 
-## Validação quickstart
-Ver `../specs/001-deckbox-colecao-mvp/quickstart.md` — 9 cenários manuais.
+Expo SDK 57 • React Native 0.86 • TypeScript • expo-sqlite • expo-file-system/legacy • FlashList 2.0 • Zustand 5 • React Navigation
 
 ## Estrutura
-Ver `../specs/001-deckbox-colecao-mvp/plan.md` e `data-model.md`.
+
+`src/navigation` • `src/screens` • `src/components` • `src/services` • `src/db` • `src/store` • `src/lib`
+
+Docs: `../specs/001-deckbox-colecao-mvp/` (spec, plan, tasks, quickstart)
